@@ -102,9 +102,10 @@ GIMP 3), `Gimp.Image.convert_color_profile`, `Gimp.Image.scale` with the
 context interpolation (NONE, LINEAR, CUBIC, NOHALO, LOHALO),
 `Gimp.Image.crop`, `Gimp.Metadata`, `Gimp.file_load` for decoding.
 
-Measured on a 64 x 48 test image carrying Exif, XMP and a non-sRGB
+First measured on a 64 x 48 test image carrying Exif, XMP and a non-sRGB
 profile, exported from a duplicate with every include switch off and then
-on (ImageMagick `identify -verbose` and GIMP loading the file back):
+on (ImageMagick `identify -verbose` and GIMP loading the file back); the
+tests now check all of it on every run:
 
 - JPEG, PNG and WebP follow the switches exactly: nothing with them off;
   Exif, XMP and ICC with them on.
@@ -153,6 +154,47 @@ on (ImageMagick `identify -verbose` and GIMP loading the file back):
   decoded from the written file, the original image is unchanged.
 - `tests/gui/`: the dialog on a Broadway display with a headless Chrome;
   screenshots, and an export through the dialog.
+
+## Status (2026-09-28)
+
+Done and tested: everything in "Design" above, the dialog included.
+`tests/run.sh` runs the unit tests, the headless GIMP exports, the file
+checks and the Broadway dialog tests; the counts are in README.md.
+
+## Findings while building it
+
+- `file-webp-export` has `include-iptc` but writes no IPTC (checked in
+  the file structure and by loading it back in GIMP).
+- `file-heif-av1-export` always writes an ICC profile.
+- JPEG XL: GIMP loads its own JPEG XL converted to sRGB and shows no
+  profile, with the right colours: an Adobe RGB image exported without
+  the conversion, lossless, decodes within 1 level of GIMP's own sRGB
+  conversion. A lossy JPEG XL is the same bytes with or without the
+  conversion (8-bit gradient in Adobe RGB, 1836 bytes both times).
+- PNG compression 9 against 6 on a noisy 4000 x 3000 image: 34.9 s
+  against 2.5 s for 13 % fewer bytes; on a smooth one the same size and
+  time. Hence the default of 6.
+- `Gimp.Procedure.new_return_values` fills in every return value with
+  its default: a plug-in in Python must replace them (`remove`, `insert`),
+  not append.
+- `add_choice_aux_argument` fails an assertion in libgimp 3.2.6
+  (`gimp_param_spec_choice: assertion 'GIMP_IS_CHOICE (choice)'`); the
+  dialog's view and zoom are string aux arguments.
+- Merging a 16-bit Adobe RGB layer and then converting differs by at most
+  1 level from converting the unmerged image (43 of 38400 values).
+- Broadway tests: End in a GtkSpinButton sets it to its maximum; the test
+  clears the field with Backspace and Delete.
+
+## Not done
+
+- Animation (GIF, WebP, APNG), JPEG 2000, CMYK JPEG, AVIF and JPEG XL
+  above 8 bits.
+- Crop handles dragged in the preview and the navigation pop-up of the
+  original; translations.
+- Encoding in the background: one long encode (PNG compression 9 on a
+  big image) blocks the dialog until it is done; a target-size search
+  lets events through between its encodes.
+- Not tried: a native (non-Flatpak) GIMP, Windows, macOS, GIMP 3.0.
 
 ## Notes
 
