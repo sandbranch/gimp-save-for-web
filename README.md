@@ -52,7 +52,12 @@ of the original is used (why: [PLAN.md](PLAN.md)).
   or the largest number of colours (PNG-8, GIF) whose file fits in the
   size you give, by bisection (up to 10 encodes). It says so when even
   the lowest does not fit, and when the format has nothing to search
-  (PNG-24, lossless modes, fixed palettes).
+  (PNG-24, lossless modes, fixed palettes). While the target size is on,
+  the searched slider (the quality, or the colours) is greyed out and
+  shows the value found; your own value stays underneath and is the one
+  remembered. Turning the target size off takes the found value over as
+  your own (the slider does not jump and the file stays the same), and
+  from then on that value is remembered.
 - **Size**: resize by width and height (with or without the aspect
   ratio) or by percent, with GIMP's interpolations (none for pixel art,
   linear, cubic, NoHalo, LoHalo); crop to the selection's bounding box.
@@ -181,10 +186,12 @@ the dialog stays responsive between them.
    written file.
 4. `tests/gui/gui-test.sh`: the dialog in the Flatpak GIMP on a Broadway
    display, driven by a headless Chrome (gimp-devtools `gui/cdp.mjs`),
-   three times with one throwaway profile: WebP at a 4 kB target through
-   the menus and fields, then the same bytes again from the remembered
-   settings, then PNG-8 cropped to the selection (23 checks, screenshots
-   in `tests/output/gui/`).
+   four times with one throwaway profile: WebP at a 4 kB target through
+   the menus and fields (the found quality is used, the greyed slider
+   ignores a click, the manual quality is what GIMP stores), the same
+   bytes again from the remembered settings, the target turned off (the
+   found quality taken over: the same bytes, and now stored), then PNG-8
+   cropped to the selection (screenshots in `tests/output/gui/`).
 
 GIMP always runs isolated (`tests/isolate.sh`, a copy of gimp-devtools'
 `isolate.sh`): a throwaway profile and home under `tests/output`, and a

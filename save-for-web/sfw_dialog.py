@@ -275,6 +275,11 @@ class WebDialog:
         self.enc_settings = None        # the settings it was made with
         self.pending = None             # the timeout of the next update
         self.busy = False               # an encode is running
+        # (setting, value) the target-size search found, shown in that
+        # setting's slider while target size is on; self.s keeps the
+        # manual value (what is remembered) until target size is turned
+        # off, when the found value is taken over
+        self.found = None
         self.widgets = {}
         self.blocked = False
         self.src_w, self.src_h = self.session.source_rect(s)[2:]
@@ -683,6 +688,12 @@ class WebDialog:
         if self.blocked:
             return
         self.s[key] = value
+        if key == 'target-size' and not value and self.found is not None:
+            # the found value becomes the manual one: the slider stays
+            # where it is and the file stays the same
+            name, found = self.found
+            self.s[name] = found
+            self.found = None
         if key == 'format':
             self.fix_extension()
         if key in ('width', 'height', 'keep-aspect', 'scale-mode', 'percent',
@@ -742,8 +753,14 @@ class WebDialog:
         w['colors'].set_sensitive(self.s['palette'] in ('optimum', 'keep') and
                                   not (self.s['palette'] == 'keep' and self.image.get_base_type()
                                        == Gimp.ImageBaseType.INDEXED))
+        w['jpeg-quality'].set_sensitive(True)
+        searched = model.search_parameter(self.s) if self.s['target-size'] else None
+        if searched is not None:
+            # the search sets it
+            w[searched[0]].set_sensitive(False)
+        self.show_found()
         self.jxl_label.set_text('Distance %.2f (1.0 is visually lossless)' %
-                                model.jxl_distance(self.s['jxl-quality'])
+                                model.jxl_distance(self.shown_value('jxl-quality'))
                                 if not self.s['jxl-lossless'] else 'Lossless')
         mode = self.s['scale-mode']
         for k in ('width', 'height', 'keep-aspect'):
@@ -871,16 +888,39 @@ class WebDialog:
                          'PSNR %.1f dB' % p)
         self.detail_label.set_text(', '.join(parts))
         note = enc.note
+        self.found = None
         if enc.quality is not None:
             name = model.search_parameter(s)[0]
+            self.found = (name, enc.quality)
             self.target_label.set_text('%s %d found in %d encodes: %s.' % (
                 'Colours' if name == 'colors' else 'Quality', enc.quality, len(enc.tried),
                 'fits' if enc.fits else 'does NOT fit'))
+        self.show_found()
         warn = self.meta_warn.get_text()
         self.note_label.set_text((note + ' ' + warn).strip() if warn else note)
         self.status_label.set_text('%.2f s' % seconds)
         self.show_times()
         self.show_pixbufs()
+
+    SEARCHED = ('jpeg-quality', 'webp-quality', 'avif-quality', 'jxl-quality', 'colors')
+
+    def shown_value(self, name):
+        """The value the slider of a searched setting shows: the found one
+        while target size is on, else the setting's."""
+        if (self.found is not None and self.found[0] == name and self.s['target-size']
+                and model.search_parameter(self.s) is not None
+                and model.search_parameter(self.s)[0] == name):
+            return self.found[1]
+        return self.s[name]
+
+    def show_found(self):
+        self.blocked = True
+        try:
+            for name in self.SEARCHED:
+                if self.widgets[name].get_value() != self.shown_value(name):
+                    self.widgets[name].set_value(self.shown_value(name))
+        finally:
+            self.blocked = False
 
     def show_times(self):
         if self.enc is None:
