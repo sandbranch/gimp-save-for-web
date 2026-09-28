@@ -30,7 +30,6 @@ changed: all work is done on a duplicate. After Save for Web by Aurimas
 Juska (GIMP 2); a rewrite, see PLAN.md."""
 
 import os
-import re
 import sys
 import traceback
 
@@ -50,64 +49,6 @@ AUTHOR = 'David'
 COPYRIGHT = 'David'
 DATE = '2026'
 
-# label and description of each setting (the procedure's arguments)
-LABELS = {
-    'format': ('_Format', 'The file format'),
-    'jpeg-quality': ('_Quality', 'JPEG quality, 0 to 100'),
-    'jpeg-progressive': ('_Progressive', 'Progressive JPEG (shows early in a slow browser, '
-                         'often smaller)'),
-    'jpeg-subsampling': ('_Subsampling', 'Chroma subsampling'),
-    'jpeg-optimize': ('_Optimize', 'Optimized Huffman tables (smaller, same pixels)'),
-    'jpeg-smoothing': ('S_moothing', 'Smoothing before compression, 0 to 1'),
-    'png-compression': ('Co_mpression', 'zlib compression level, 0 to 9 (same pixels)'),
-    'png-interlace': ('_Interlace (Adam7)', 'Interlaced PNG'),
-    'colors': ('_Colours', 'Number of colours of the optimum palette, 2 to 256'),
-    'palette': ('_Palette', 'Palette of PNG-8 and GIF'),
-    'dither': ('_Dither', 'Dithering of PNG-8 and GIF'),
-    'alpha-dither': ('Dither _transparency', 'Dither the transparency of PNG-8 and GIF'),
-    'remove-unused': ('_Remove unused colours', 'Drop unused colours from the palette'),
-    'gif-interlace': ('_Interlace', 'Interlaced GIF'),
-    'webp-lossless': ('_Lossless', 'Lossless WebP'),
-    'webp-quality': ('_Quality', 'WebP quality, 0 to 100'),
-    'webp-alpha-quality': ('_Alpha quality', 'WebP quality of the transparency, 0 to 100'),
-    'webp-preset': ('P_reset', 'WebP encoder preset'),
-    'webp-sharp-yuv': ('_Sharp YUV', 'Sharper colour edges (slower)'),
-    'avif-lossless': ('_Lossless', 'Lossless AVIF'),
-    'avif-quality': ('_Quality', 'AVIF quality, 0 to 100'),
-    'avif-pixel-format': ('_Pixels', 'AVIF pixel format'),
-    'avif-speed': ('_Speed', 'AVIF encoder speed'),
-    'jxl-lossless': ('_Lossless', 'Lossless JPEG XL'),
-    'jxl-quality': ('_Quality', 'JPEG XL quality, 1 to 100 (as cjxl -q; 90 is about '
-                    'distance 1, visually lossless)'),
-    'jxl-effort': ('_Effort', 'JPEG XL encoder effort'),
-    'target-size': ('_Target size', 'Find the highest quality (or number of colours) whose '
-                    'file fits in the target size'),
-    'target-kb': ('Target (_kB)', 'The target size in kB (1 kB = 1000 bytes)'),
-    'crop-to-selection': ('_Crop to selection', 'Export only the bounding box of the '
-                          'selection'),
-    'scale-mode': ('_Resize', 'How the exported size is given'),
-    'width': ('_Width', 'Width in pixels (0: from the height and the aspect)'),
-    'height': ('_Height', 'Height in pixels (0: from the width and the aspect)'),
-    'percent': ('_Percent', 'Scale in percent'),
-    'keep-aspect': ('_Keep aspect ratio', 'Keep the aspect ratio when resizing'),
-    'interpolation': ('_Interpolation', 'Interpolation of the resize'),
-    'convert-srgb': ('Con_vert to sRGB', 'Convert to sRGB (what browsers assume without '
-                     'a profile)'),
-    'keep-color-profile': ('Keep colour _profile (ICC)', 'Embed the colour profile'),
-    'keep-exif': ('Keep _Exif', 'Keep the Exif metadata'),
-    'remove-gps': ('Remove _GPS location', 'Remove the GPS tags from the kept Exif and XMP'),
-    'keep-xmp': ('Keep _XMP', 'Keep the XMP metadata'),
-    'keep-iptc': ('Keep IPT_C', 'Keep the IPTC metadata (JPEG and PNG; GIMP writes none into WebP)'),
-    'keep-comment': ('Keep co_mment', 'Keep the image comment (JPEG, PNG)'),
-    'matte': ('_Matte', 'The colour transparent pixels are flattened onto (JPEG)'),
-}
-
-VIEWS = [('result', 'Result'), ('side', 'Side by side'), ('split', 'Split'),
-         ('original', 'Original')]
-ZOOMS = [('fit', 'Fit'), ('25', '25 %'), ('50', '50 %'), ('100', '100 %'), ('200', '200 %'),
-         ('400', '400 %'), ('800', '800 %')]
-
-
 def make_choice(table):
     choice = Gimp.Choice.new()
     for i, (nick, label) in enumerate(table):
@@ -119,12 +60,6 @@ def settings_from_config(config):
     return {k: config.get_property(k) for k in model.SETTINGS}
 
 
-def config_path(config):
-    f = config.get_property('file')
-    path = f.get_path() if f is not None else ''
-    # GIMP 3.2 keeps a file argument's last value as "file:////home/...",
-    # which comes back as "//home/..."
-    return re.sub(r'^//+', '/', path or '')
 
 
 # ------------------------------------------------------------ run
@@ -168,7 +103,7 @@ def run_main(procedure, run_mode, image, drawables, config, data):
         available = engine.available_formats()
         if run_mode == Gimp.RunMode.NONINTERACTIVE:
             s = settings_from_config(config)
-            path = config_path(config)
+            path = model.config_path(config)
             if not path:
                 return error(procedure, 'No file given.', Gimp.PDBStatusType.CALLING_ERROR)
             if s['format'] not in available:
@@ -213,7 +148,7 @@ class SaveForWeb(Gimp.PlugIn):
         procedure.add_file_argument('file', '_File', 'The file to write',
                                     Gimp.FileChooserAction.SAVE, True, None, flags)
         for k, (default, kind, extra) in model.SETTINGS.items():
-            label, blurb = LABELS[k]
+            label, blurb = model.LABELS[k]
             if kind == 'choice':
                 procedure.add_choice_argument(k, label, blurb, make_choice(extra), default,
                                               flags)
@@ -227,9 +162,9 @@ class SaveForWeb(Gimp.PlugIn):
         # the dialog's own state, remembered but not part of the PDB call
         # (strings: choice aux arguments fail an assertion in libgimp 3.2.6)
         procedure.add_string_aux_argument('view', 'View', 'Preview mode: ' +
-                                          ', '.join(n for n, _ in VIEWS), 'result', flags)
+                                          ', '.join(n for n, _ in model.VIEWS), 'result', flags)
         procedure.add_string_aux_argument('zoom', 'Zoom', 'Preview zoom: ' +
-                                          ', '.join(n for n, _ in ZOOMS), '100', flags)
+                                          ', '.join(n for n, _ in model.ZOOMS), '100', flags)
         procedure.add_int_aux_argument('connection', 'Connection',
                                        'Connection for the download time', 0,
                                        len(model.CONNECTIONS) - 1, 1, flags)

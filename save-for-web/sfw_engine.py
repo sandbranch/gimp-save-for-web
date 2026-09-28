@@ -392,9 +392,11 @@ class Session:
             except OSError:
                 pass
 
-    def render(self, s):
+    def render(self, s, progress=None):
         """Encodes with the settings s (not yet checked), searching the
-        quality for the target size if asked. Returns an Encoded."""
+        quality for the target size if asked. Returns an Encoded.
+        progress(value, size), if given, is called after each encode of
+        the search."""
         s = model.check(s)
         self._encoded = {}
         if not s['target-size']:
@@ -412,7 +414,10 @@ class Session:
         def size_of(v):
             t = dict(s)
             t[name] = v
-            return self.encode(t).size
+            n = self.encode(t).size
+            if progress is not None:
+                progress(v, n)
+            return n
 
         v, _, fits, tried = model.search_target(lo, hi, size_of, target)
         t = dict(s)

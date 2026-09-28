@@ -28,6 +28,7 @@ def check(ok, what):
 d = m.defaults()
 check(d['format'] == 'jpeg' and d['jpeg-quality'] == 85, 'defaults: JPEG at quality 85')
 check(set(d) == set(m.SETTINGS), 'defaults cover every setting')
+check(set(m.LABELS) == set(m.SETTINGS), 'every setting has a label and a description')
 c = m.check({'jpeg-quality': 250, 'colors': 1, 'target-kb': -3, 'keep-exif': 1})
 check(c['jpeg-quality'] == 100 and c['colors'] == 2 and c['target-kb'] == 0.1
       and c['keep-exif'] is True, 'check clamps ints, doubles and makes bools')

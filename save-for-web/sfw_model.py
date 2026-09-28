@@ -24,6 +24,7 @@ mapping, the target-size search and the download time estimate. Tested
 on its own by tests/unit.py."""
 
 import math
+import re
 
 # ------------------------------------------------------------ choices
 # (nick, label); the nick is what the procedure argument takes
@@ -366,3 +367,73 @@ def psnr(mse):
     if mse <= 0:
         return math.inf
     return 10.0 * math.log10(255.0 * 255.0 / mse)
+
+
+# ------------------------------------------------------------ the dialog
+
+# label and description of each setting (the procedure's arguments)
+LABELS = {
+    'format': ('_Format', 'The file format'),
+    'jpeg-quality': ('_Quality', 'JPEG quality, 0 to 100'),
+    'jpeg-progressive': ('_Progressive', 'Progressive JPEG (shows early in a slow browser, '
+                         'often smaller)'),
+    'jpeg-subsampling': ('_Subsampling', 'Chroma subsampling'),
+    'jpeg-optimize': ('_Optimize', 'Optimized Huffman tables (smaller, same pixels)'),
+    'jpeg-smoothing': ('S_moothing', 'Smoothing before compression, 0 to 1'),
+    'png-compression': ('Co_mpression', 'zlib compression level, 0 to 9 (same pixels)'),
+    'png-interlace': ('_Interlace (Adam7)', 'Interlaced PNG'),
+    'colors': ('_Colours', 'Number of colours of the optimum palette, 2 to 256'),
+    'palette': ('_Palette', 'Palette of PNG-8 and GIF'),
+    'dither': ('_Dither', 'Dithering of PNG-8 and GIF'),
+    'alpha-dither': ('Dither _transparency', 'Dither the transparency of PNG-8 and GIF'),
+    'remove-unused': ('_Remove unused colours', 'Drop unused colours from the palette'),
+    'gif-interlace': ('_Interlace', 'Interlaced GIF'),
+    'webp-lossless': ('_Lossless', 'Lossless WebP'),
+    'webp-quality': ('_Quality', 'WebP quality, 0 to 100'),
+    'webp-alpha-quality': ('_Alpha quality', 'WebP quality of the transparency, 0 to 100'),
+    'webp-preset': ('P_reset', 'WebP encoder preset'),
+    'webp-sharp-yuv': ('_Sharp YUV', 'Sharper colour edges (slower)'),
+    'avif-lossless': ('_Lossless', 'Lossless AVIF'),
+    'avif-quality': ('_Quality', 'AVIF quality, 0 to 100'),
+    'avif-pixel-format': ('_Pixels', 'AVIF pixel format'),
+    'avif-speed': ('_Speed', 'AVIF encoder speed'),
+    'jxl-lossless': ('_Lossless', 'Lossless JPEG XL'),
+    'jxl-quality': ('_Quality', 'JPEG XL quality, 1 to 100 (as cjxl -q; 90 is about '
+                    'distance 1, visually lossless)'),
+    'jxl-effort': ('_Effort', 'JPEG XL encoder effort'),
+    'target-size': ('_Target size', 'Find the highest quality (or number of colours) whose '
+                    'file fits in the target size'),
+    'target-kb': ('Target (_kB)', 'The target size in kB (1 kB = 1000 bytes)'),
+    'crop-to-selection': ('_Crop to selection', 'Export only the bounding box of the '
+                          'selection'),
+    'scale-mode': ('_Resize', 'How the exported size is given'),
+    'width': ('_Width', 'Width in pixels (0: from the height and the aspect)'),
+    'height': ('_Height', 'Height in pixels (0: from the width and the aspect)'),
+    'percent': ('_Percent', 'Scale in percent'),
+    'keep-aspect': ('_Keep aspect ratio', 'Keep the aspect ratio when resizing'),
+    'interpolation': ('_Interpolation', 'Interpolation of the resize'),
+    'convert-srgb': ('Con_vert to sRGB', 'Convert to sRGB (what browsers assume without '
+                     'a profile)'),
+    'keep-color-profile': ('Keep colour _profile (ICC)', 'Embed the colour profile'),
+    'keep-exif': ('Keep _Exif', 'Keep the Exif metadata'),
+    'remove-gps': ('Remove _GPS location', 'Remove the GPS tags from the kept Exif and XMP'),
+    'keep-xmp': ('Keep _XMP', 'Keep the XMP metadata'),
+    'keep-iptc': ('Keep IPT_C', 'Keep the IPTC metadata (JPEG and PNG; GIMP writes none '
+                  'into WebP)'),
+    'keep-comment': ('Keep co_mment', 'Keep the image comment (JPEG, PNG)'),
+    'matte': ('_Matte', 'The colour transparent pixels are flattened onto (JPEG)'),
+}
+
+VIEWS = [('result', 'Result'), ('side', 'Side by side'), ('split', 'Split'),
+         ('original', 'Original')]
+ZOOMS = [('fit', 'Fit'), ('25', '25 %'), ('50', '50 %'), ('100', '100 %'), ('200', '200 %'),
+         ('400', '400 %'), ('800', '800 %')]
+
+
+def config_path(config):
+    """The path of the procedure config's file argument, or ''."""
+    f = config.get_property('file')
+    path = f.get_path() if f is not None else ''
+    # GIMP 3.2 keeps a file argument's last value as "file:////home/...",
+    # which comes back as "//home/..."
+    return re.sub(r'^//+', '/', path or '')
