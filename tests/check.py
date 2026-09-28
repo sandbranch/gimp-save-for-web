@@ -137,7 +137,9 @@ for name, c in sorted(cases.items()):
 
 def info_is(name, what, **want):
     if name not in infos:
-        report(False, '%s: %s (no file)' % (name, what))
+        # (with SFW_ONLY the case may not have run)
+        if not results.get('only'):
+            report(False, '%s: %s (no file)' % (name, what))
         return
     got = {k: infos[name].get(k) for k in want}
     report(got == want, '%s: %s %s' % (name, what, '' if got == want else '(got %s)' % got))
@@ -195,7 +197,8 @@ smaller('avif-q20', 'avif-q90', 'AVIF quality 20 < 90')
 smaller('jxl-q50', 'jxl-q95', 'JPEG XL quality 50 < 95')
 smaller('png8-c2', 'png8-c16', 'PNG-8 2 < 16 colours')
 smaller('png8-c16', 'png8-c64', 'PNG-8 16 < 64 colours')
-smaller('photo-png', 'png-c0', 'PNG compression 9 < 0')
+smaller('photo-png', 'png-c0', 'PNG compression 6 < 0')
+smaller('png-c9', 'photo-png', 'PNG compression 9 < 6')
 smaller('jpeg-baseline', 'jpeg-noopt', 'JPEG optimised Huffman tables')
 smaller('photo-webp', 'webp-lossless', 'lossy WebP < lossless')
 
@@ -207,6 +210,7 @@ def same_pixels(a, b, what):
 
 
 same_pixels('photo-png', 'png-c0', 'PNG compression changes only the size')
+same_pixels('photo-png', 'png-c9', 'PNG compression changes only the size')
 same_pixels('photo-png', 'png-interlace', 'interlacing changes only the layout')
 same_pixels('jpeg-baseline', 'jpeg-noopt', 'Huffman optimisation changes only the size')
 same_pixels('photo-png', 'webp-lossless', 'lossless WebP')
@@ -384,6 +388,19 @@ for f in formats:
         elif m in ('exif-gps',) and f in HAS['exif']:
             report(gps_rb, '%s: GIMP reads the GPS back' % name)
 
+# the kept Adobe RGB profile comes back when GIMP loads the file (JPEG
+# XL carries the colour space in the codestream: GIMP converts it to sRGB
+# on loading and shows no profile; gimp-test.py checks its colours)
+for f in formats:
+    name = 'meta-%s-icc-adobe' % f
+    if not ok_case(name) or f == 'gif':
+        continue
+    got = cases[name].get('readback', {}).get('profile')
+    if f == 'jxl':
+        continue
+    report(got is not None and 'Adobe' in got, '%s: GIMP reads the Adobe RGB profile back '
+           '(%s)' % (name, got))
+
 # ------------------------------------------------------------ preview = file
 
 for name, c in sorted(cases.items()):
@@ -420,6 +437,10 @@ before = results['images'].get('before', {})
 after = results['images'].get('after', {})
 report(before == after and len(before) >= 7, 'the %d test images are unchanged after all the '
        'exports' % len(before))
+if results.get('timing'):
+    for f, (enc, dec, ref, n) in results['timing'].items():
+        print('SFW FILES INFO a 4000 x 3000 preview in %s: %.2f s to encode, %.2f s to decode '
+              '(%d bytes)' % (f, enc, dec, n))
 
 print('SFW FILES failures: %d of %d' % (failures, checked))
 sys.exit(1 if failures else 0)

@@ -36,7 +36,7 @@ import sfw_engine as engine   # noqa: E402
 
 pdb = Gimp.get_pdb()
 failures = 0
-results = {'cases': {}, 'images': {}}
+results = {'cases': {}, 'images': {}, 'only': ONLY}
 
 
 def report(ok, what):
@@ -359,6 +359,7 @@ case('jpeg-matte-white', 'alpha', {'format': 'jpeg', 'matte': 'white'})
 # PNG and PNG-8
 case('png-interlace', 'photo', {'format': 'png', 'png-interlace': True})
 case('png-c0', 'photo', {'format': 'png', 'png-compression': 0})
+case('png-c9', 'photo', {'format': 'png', 'png-compression': 9})
 for n in (2, 16, 64):
     case('png8-c%d' % n, 'photo', {'format': 'png8', 'colors': n})
 for d in ('none', 'fs', 'fs-low-bleed', 'positioned'):
@@ -444,6 +445,10 @@ for f in formats:
     for m, extra in META.items():
         case('meta-%s-%s' % (f, m), 'profile', dict(extra, format=f))
 case('meta-png-nosrgb', 'profile', {'format': 'png', 'convert-srgb': False})
+if 'jxl' in formats:
+    # (lossless, so that only the colour handling can differ)
+    case('meta-jxl-nosrgb', 'profile', {'format': 'jxl', 'convert-srgb': False,
+                                        'jxl-lossless': True})
 
 # the preview's pixels
 for f in formats:
@@ -452,6 +457,32 @@ preview_case('preview-alpha-png', 'alpha', {'format': 'png'})
 preview_case('preview-alpha-jpeg', 'alpha', {'format': 'jpeg'})
 preview_case('preview-target-webp', 'photo', {'format': 'webp', 'target-size': True,
                                               'target-kb': 8.0})
+
+# how long the dialog waits for a preview of a 12-megapixel image: the
+# encode, the decode and the reference pixels (measured, not checked:
+# it depends on the machine)
+if not ONLY or 'timing' in ONLY:
+    big = images['photo'].duplicate()
+    big.scale(4000, 3000)
+    big.clean_all()
+    images_timing = engine.Session(big)
+    try:
+        for f in formats:
+            s = model.check({'format': f})
+            t0 = time.time()
+            enc = images_timing.render(s)
+            t1 = time.time()
+            images_timing.decode(enc)
+            t2 = time.time()
+            images_timing.reference(s)
+            t3 = time.time()
+            results.setdefault('timing', {})[f] = [round(t1 - t0, 2), round(t2 - t1, 2),
+                                                   round(t3 - t2, 2), enc.size]
+            print('SFW GIMP INFO 4000 x 3000 %s: encode %.2f s, decode %.2f s, reference '
+                  '%.2f s, %d bytes' % (f, t1 - t0, t2 - t1, t3 - t2, enc.size), flush=True)
+    finally:
+        images_timing.close()
+        big.delete()
 
 # errors: no file; a format this GIMP does not have is refused by the
 # choice itself
@@ -479,7 +510,7 @@ def max_diff_to(case_name, px):
     return max(abs(a - b) for a, b in zip(px, got))
 
 
-if not ONLY or 'meta-png' in ONLY:
+if 'meta-png-strip' in results['cases']:
     ref = images['profile'].duplicate()
     ref.convert_color_profile(Gimp.ColorProfile.new_rgb_srgb(),
                               Gimp.ColorRenderingIntent.PERCEPTUAL, True)
@@ -494,6 +525,13 @@ if not ONLY or 'meta-png' in ONLY:
     report(d2 is not None and d2 >= 10,
            'without the conversion the pixels are the Adobe RGB values (max difference to '
            'sRGB %s)' % d2)
+    # JPEG XL carries its colour space: GIMP decodes the unconverted
+    # (lossless) file to the sRGB colours
+    if 'jxl' in formats:
+        d3 = max_diff_to('meta-jxl-nosrgb', px)
+        report(d3 is not None and d3 <= 2,
+               'JPEG XL without the conversion still decodes to the right colours (max '
+               'difference to sRGB %s)' % d3)
 
 after = {n: state(i) for n, i in images.items()}
 for n in images:

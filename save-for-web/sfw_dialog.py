@@ -599,6 +599,11 @@ class WebDialog:
         self.meta_info.set_max_width_chars(40)
         self.meta_info.set_text(self.source_metadata_text())
         g.attach(self.meta_info, 0, 7, 1, 1)
+        self.meta_warn = Gtk.Label()
+        self.meta_warn.set_xalign(0.0)
+        self.meta_warn.set_line_wrap(True)
+        self.meta_warn.set_max_width_chars(40)
+        g.attach(self.meta_warn, 0, 8, 1, 1)
         return g
 
     def source_metadata_text(self):
@@ -764,6 +769,18 @@ class WebDialog:
         w['keep-color-profile'].set_sensitive(f in META_FORMATS['keep-color-profile'])
         rgb = self.image.get_base_type() != Gimp.ImageBaseType.INDEXED
         w['convert-srgb'].set_sensitive(rgb)
+        # not converted and the profile not in the file: browsers take the
+        # values as sRGB (AVIF always carries the profile, JPEG XL its
+        # colour space; see README.md)
+        profile = self.image.get_color_profile()
+        carried = f in ('avif', 'jxl') or (f in META_FORMATS['keep-color-profile'] and
+                                           self.s['keep-color-profile'])
+        not_srgb = profile is not None and not profile.is_equal(
+            Gimp.ColorProfile.new_rgb_srgb())
+        self.meta_warn.set_text(
+            'Not converted to sRGB and the profile not in the file: browsers will show '
+            'other colours.' if rgb and not_srgb and not self.s['convert-srgb'] and
+            not carried else '')
         has_alpha = any(layer.has_alpha() for layer in self.image.get_layers())
         w['matte'].set_sensitive(has_alpha)
         self.matte_label.set_sensitive(has_alpha)
@@ -859,7 +876,8 @@ class WebDialog:
             self.target_label.set_text('%s %d found in %d encodes: %s.' % (
                 'Colours' if name == 'colors' else 'Quality', enc.quality, len(enc.tried),
                 'fits' if enc.fits else 'does NOT fit'))
-        self.note_label.set_text(note)
+        warn = self.meta_warn.get_text()
+        self.note_label.set_text((note + ' ' + warn).strip() if warn else note)
         self.status_label.set_text('%.2f s' % seconds)
         self.show_times()
         self.show_pixbufs()

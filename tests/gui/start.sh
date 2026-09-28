@@ -10,6 +10,7 @@
 #
 #   tests/gui/start.sh
 #   SFW_SCENE=1600x1000 tests/gui/start.sh    a bigger scene
+#   SFW_PROFILE=adobe tests/gui/start.sh      the scene in Adobe RGB
 #
 # broadwayd stops when GIMP quits, also when GIMP fails. GIMP loads no
 # fonts (--no-fonts): on Broadway it can hang at start while loading them.
@@ -35,7 +36,7 @@ GIMP_RUN_HOME=${GIMP_RUN_HOME:-$tests/output/gimp-home}
 gimp_run --flatpak --filesystem="$src" \
   --env=GDK_BACKEND=broadway --env=BROADWAY_DISPLAY=:5 \
   --env=GIMP3_DIRECTORY="$profile" --env=SFW_OUT="$out" \
-  --env=SFW_SCENE="${SFW_SCENE:-640x400}" \
+  --env=SFW_SCENE="${SFW_SCENE:-640x400}" --env=SFW_PROFILE="${SFW_PROFILE:-}" \
   -- sh -c \
   "broadwayd --port 8085 :5 & bw=\$!; trap 'kill \$bw' EXIT; sleep 2; \
    gimp-3.2 --new-instance --no-splash --no-fonts \

@@ -1,5 +1,6 @@
 # Runs inside GIMP on a Broadway display (tests/gui/start.sh): makes a
-# generated scene (SFW_SCENE, 640x400 by default) with a selection, names
+# generated scene (SFW_SCENE, 640x400 by default; SFW_PROFILE=adobe: in
+# Adobe RGB) with a selection, names
 # it SFW_OUT/scene.xcf (so the dialog proposes SFW_OUT/scene.<ext>),
 # shows it and opens Export for Web. When the dialog closes it writes the
 # return values and whether the image is unchanged to SFW_OUT/result.txt,
@@ -39,6 +40,8 @@ for Y in range(H):
 buf = layer.get_buffer()
 buf.set(Gegl.Rectangle.new(0, 0, W, H), "R'G'B' float", bytes(data))
 buf.flush()
+if os.environ.get('SFW_PROFILE') == 'adobe':
+    image.set_color_profile(Gimp.ColorProfile.new_rgb_adobe())
 image.select_rectangle(Gimp.ChannelOps.REPLACE, W // 8, H // 8, W // 2, H // 2)
 image.set_file(Gio.File.new_for_path(os.path.join(out, 'scene.xcf')))
 image.clean_all()

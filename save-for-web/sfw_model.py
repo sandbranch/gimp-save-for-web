@@ -116,7 +116,9 @@ SETTINGS = {
     'jpeg-optimize': (True, 'bool', None),
     'jpeg-smoothing': (0.0, 'double', (0.0, 1.0)),
     # PNG
-    'png-compression': (9, 'int', (0, 9)),
+    # (6, not 9: on a noisy 4000 x 3000 image 9 took 34.9 s and 6 2.5 s,
+    # for 13 % more bytes; on smooth images they are the same)
+    'png-compression': (6, 'int', (0, 9)),
     'png-interlace': (False, 'bool', None),
     # PNG-8 and GIF
     'colors': (256, 'int', (2, 256)),
@@ -380,7 +382,8 @@ LABELS = {
     'jpeg-subsampling': ('_Subsampling', 'Chroma subsampling'),
     'jpeg-optimize': ('_Optimize', 'Optimized Huffman tables (smaller, same pixels)'),
     'jpeg-smoothing': ('S_moothing', 'Smoothing before compression, 0 to 1'),
-    'png-compression': ('Co_mpression', 'zlib compression level, 0 to 9 (same pixels)'),
+    'png-compression': ('Co_mpression', 'zlib compression level, 0 to 9 (same pixels; 9 is '
+                        'a little smaller and can be many times slower on big images)'),
     'png-interlace': ('_Interlace (Adam7)', 'Interlaced PNG'),
     'colors': ('_Colours', 'Number of colours of the optimum palette, 2 to 256'),
     'palette': ('_Palette', 'Palette of PNG-8 and GIF'),

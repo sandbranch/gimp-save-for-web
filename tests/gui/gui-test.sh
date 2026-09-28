@@ -64,7 +64,8 @@ dims = subprocess.run(['magick', 'identify', '-format', '%w %h', path], capture_
 report(i['format'] == fmt and dims == [w, h] and (res['width'], res['height']) == (w, h),
        '%s: a %s of %s x %s that decodes' % (name, fmt, w, h))
 if extra != '-':
-    report(eval(extra), '%s: %s' % (name, extra))
+    expr, _, label = extra.partition('#')
+    report(eval(expr), '%s: %s' % (name, label or expr))
 report(res.get('unchanged') == 'True', 'the image is unchanged (pixels, selection, clean)')
 report(res.get('images') == '1', 'no image left open by the dialog (%s open)' % res.get('images'))
 sys.exit(bad)
@@ -101,7 +102,7 @@ $cdp $view wait:1500 move:"$(p 500 950)" wait:300 shot:"$out/01-open.png" \
   fail "the steps in the dialog"
 $cdp $view click:"$(p 1150 810)" >/dev/null
 if wait_result; then
-    check_file scene.webp webp 640 400 4000 "i['lossless'] is False" || status=1
+    check_file scene.webp webp 640 400 4000 "i['lossless'] is False#lossy" || status=1
     cp "$out/scene.webp" "$out/first.webp"
     grep -q '^fits True$' "$out/result.txt" && pass "the target size was met" ||
       fail "the target size: $(grep fits "$out/result.txt")"
@@ -123,7 +124,7 @@ else
     $cdp $view wait:6000 move:"$(p 500 950)" wait:300 shot:"$out/06-remembered.png" \
          click:"$(p 1150 810)" >/dev/null
     if wait_result; then
-        check_file scene.webp webp 640 400 4000 "open('$out/scene.webp','rb').read() == open('$out/first.webp','rb').read()" ||
+        check_file scene.webp webp 640 400 4000 "open('$out/scene.webp','rb').read() == open('$out/first.webp','rb').read()#the same bytes as in the first run (settings remembered)" ||
           status=1
     else
         fail "no result after Export in the second run (log: $out/gimp.log)"
@@ -149,7 +150,7 @@ else
          click:"$(p 855 479)" wait:10000 move:"$(p 500 950)" wait:300 \
          shot:"$out/08-png8-crop.png" click:"$(p 1150 810)" >/dev/null
     if wait_result; then
-        check_file scene.png png 320 200 1000000 "i['color_type'] == 3 and i['palette'] <= 256" ||
+        check_file scene.png png 320 200 1000000 "i['color_type'] == 3 and i['palette'] <= 256#indexed, the selection only" ||
           status=1
     else
         fail "no result after Export in the third run (log: $out/gimp.log)"

@@ -54,7 +54,7 @@ gimp_run --timeout=1800 --filesystem="$src" --env=GIMP3_DIRECTORY="$profile" \
   -b "exec(open('$here/gimp-test.py').read())" --quit >"$log" 2>&1
 rc=$?
 [ $rc = 124 ] && { echo "SFW FAIL GIMP did not finish in 30 minutes"; status=1; }
-grep -E "^SFW GIMP (FAIL|failures)|Traceback|^  File|Error" "$log"
+grep -E "^SFW GIMP (FAIL|failures|INFO)|Traceback|^  File|Error" "$log"
 echo "SFW GIMP $(grep -c '^SFW GIMP PASS' "$log") passed, $(grep -c '^SFW case' "$log") exports"
 grep -q "^SFW GIMP failures: 0$" "$log" || status=1
 # messages of the plug-in (its process is named after it)
