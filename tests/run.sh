@@ -9,14 +9,14 @@
 # where the plug-in is installed: your own GIMP profile and plug-ins are
 # not used or changed. GIMP runs isolated from your folders
 # (tests/isolate.sh, with gimp-devtools/gimp-run.sh): HOME and the XDG
-# folders inside the Flatpak point into tests/output/gimp-home. Before and
-# after, it lists your folders of GIMP and the other apps
+# folders point into tests/output/gimp-home. Before and after, it lists your folders of GIMP and the other apps
 # (gimp-devtools/snapshot.sh) and fails if anything there changed.
 #
 #   tests/run.sh                  all tests
 #   SFW_GUI=0 tests/run.sh        without the Broadway test
 #   SFW_ONLY=target tests/run.sh  only the GIMP cases whose names contain it
-#   GIMP_FLATPAK=0 tests/run.sh   with a native GIMP 3 (gimp-console-3.2)
+#
+# Needs the native GIMP 3.2 (gimp-console-3.2 on the PATH).
 #
 # Prints PASS, FAIL or SKIP per check and exits non-zero if one fails.
 #
@@ -48,7 +48,7 @@ chmod 755 "$plugdir/save-for-web.py"
 
 echo "== GIMP"
 log=$out/gimp.log
-gimp_run --timeout=1800 --filesystem="$src" --env=GIMP3_DIRECTORY="$profile" \
+gimp_run --timeout=1800 --env=GIMP3_DIRECTORY="$profile" \
   --env=SFW_SRC="$src" --env=SFW_OUT="$out" --env=SFW_ONLY="$SFW_ONLY" -- \
   gimp-console-3.2 --no-interface --no-fonts --batch-interpreter python-fu-eval \
   -b "exec(open('$here/gimp-test.py').read())" --quit >"$log" 2>&1

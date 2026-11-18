@@ -77,15 +77,16 @@ So it is a rewrite, and Python 3 fits it best:
   GIMP's process; the plug-in only duplicates, scales, converts, calls the
   exporter and reads the pixels back. Python adds no measurable time to
   an encode.
-- No build step and no compiler: it runs the same in the Flatpak and a
-  distro GIMP, like gimp-tileset-export.
+- No build step and no compiler: it runs in any GIMP 3.2 with Python,
+  like gimp-tileset-export.
 - GTK 3 and GimpUi through GObject introspection are complete enough for
   a custom preview (a `Gtk.DrawingArea` with cairo).
 
-## GIMP 3.2.6 (Flatpak) procedures used, checked with the PDB
+## GIMP 3.2.6 procedures used, checked with the PDB
 
-Read with `lookup_procedure(...).get_arguments()` in the Flatpak GIMP
-3.2.6 (all `file-*-export` take run-mode, image, file, options first):
+Read with `lookup_procedure(...).get_arguments()` in GIMP 3.2.6 (in
+2026-09, then the Flatpak; the tests pass the same arguments to the native
+GIMP 3.2.8; all `file-*-export` take run-mode, image, file, options first):
 
 | Format | Procedure | Arguments used |
 |---|---|---|
@@ -194,12 +195,12 @@ checks and the Broadway dialog tests; the counts are in README.md.
 - Encoding in the background: one long encode (PNG compression 9 on a
   big image) blocks the dialog until it is done; a target-size search
   lets events through between its encodes.
-- Not tried: a native (non-Flatpak) GIMP, Windows, macOS, GIMP 3.0.
+- Not tried: Windows, macOS, GIMP 3.0.
 
 ## Notes
 
-- 2026-09-28: one probe run reported a change in
-  `~/.var/app/org.gimp.GIMP/.ld.so` (its cache switched from another
-  hash to the plain runtime's). The run itself had its own `.ld.so` in the
+- 2026-09-28 (when the tests ran in the GIMP Flatpak): one probe run
+  reported a change in `~/.var/app/org.gimp.GIMP/.ld.so` (its cache
+  switched from another hash to the plain runtime's). The run itself had its own `.ld.so` in the
   throwaway home, unchanged, and the same run repeated passed: something
   else ran `flatpak run org.gimp.GIMP` with the real home at that moment.

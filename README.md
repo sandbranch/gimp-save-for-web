@@ -106,8 +106,8 @@ The four files in `save-for-web/` go into a folder named `save-for-web`
 in GIMP's plug-in folder, and `save-for-web.py` must be executable. Then
 restart GIMP.
 
-**Linux, GIMP from your distribution or the Flatpak** (the Flatpak uses
-the same folder: it has access to `~/.config/GIMP`):
+**Linux, the native GIMP of your distribution** (on Debian and Ubuntu
+`sudo apt install gimp`):
 
     mkdir -p ~/.config/GIMP/3.2/plug-ins/save-for-web
     cp save-for-web/*.py ~/.config/GIMP/3.2/plug-ins/save-for-web/
@@ -118,8 +118,10 @@ the same folder: it has access to `~/.config/GIMP`):
 the four files there. These are GIMP's usual folders; the plug-in was not
 tried on either system.
 
-It needs GIMP 3.2 with its Python 3 support (part of GIMP 3 and of the
-Flatpak); tested with GIMP 3.2.6 (Flatpak). GIMP 3.0 was not tried.
+It needs GIMP 3.2 with its Python 3 support (part of GIMP 3), and for
+AVIF and JPEG XL GIMP's HEIF and JPEG XL exporters (both in Ubuntu's
+GIMP); tested with the native GIMP 3.2.8 of Ubuntu (earlier with 3.2.6).
+GIMP 3.0 was not tried.
 
 ## From scripts
 
@@ -184,7 +186,7 @@ the dialog stays responsive between them.
    gives GIMP's own converted pixels (and JPEG XL keeps the right colours
    without it), and the preview's decoded pixels are those of the
    written file.
-4. `tests/gui/gui-test.sh`: the dialog in the Flatpak GIMP on a Broadway
+4. `tests/gui/gui-test.sh`: the dialog in the native GIMP on a Broadway
    display, driven by a headless Chrome (gimp-devtools `gui/cdp.mjs`),
    four times with one throwaway profile: WebP at a 4 kB target through
    the menus and fields (the found quality is used, the greyed slider
@@ -199,8 +201,8 @@ listing of your own GIMP, Blender, Godot, Krita and Tiled folders before
 and after, which must not change. The GUI GIMP runs with
 `--new-instance`. The test images are generated; no photos are used.
 
-Needs for the tests: the GIMP 3.2 Flatpak (or a native GIMP 3.2 with
-`GIMP_FLATPAK=0`), Python 3 with NumPy, ImageMagick 7 (`magick`), and for
+Needs for the tests: the native GIMP 3.2 (`gimp-console-3.2` and
+`gimp-3.2` on the `PATH`), Python 3 with NumPy, ImageMagick 7 (`magick`), and for
 the dialog tests Google Chrome or Chromium, node 22 and
 `../gimp-devtools` (or `GIMP_PLUGIN_DEVTOOLS`).
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Opens the Export for Web dialog in the Flatpak GIMP on a Broadway
+# Opens the Export for Web dialog in the native GIMP on a Broadway
 # display (http://127.0.0.1:8085/), to use or test it with
 # gimp-devtools/gui/cdp.mjs (see gui-test.sh), on a generated scene
 # (tests/gui/open-dialog.py). The plug-in is taken from save-for-web/ into
@@ -33,8 +33,7 @@ chmod 755 "$profile/plug-ins/save-for-web/save-for-web.py"
 GIMP_RUN_HOME=${GIMP_RUN_HOME:-$tests/output/gimp-home}
 # shellcheck source=SCRIPTDIR/../isolate.sh
 . "$tests/isolate.sh"
-gimp_run --flatpak --filesystem="$src" \
-  --env=GDK_BACKEND=broadway --env=BROADWAY_DISPLAY=:5 \
+gimp_run --env=GDK_BACKEND=broadway --env=BROADWAY_DISPLAY=:5 \
   --env=GIMP3_DIRECTORY="$profile" --env=SFW_OUT="$out" \
   --env=SFW_SCENE="${SFW_SCENE:-640x400}" --env=SFW_PROFILE="${SFW_PROFILE:-}" \
   -- sh -c \
