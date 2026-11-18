@@ -30,6 +30,14 @@ mkdir -p "$out"
 mkdir -p "$profile/plug-ins/save-for-web"
 cp "$src"/save-for-web/*.py "$profile/plug-ins/save-for-web/"
 chmod 755 "$profile/plug-ins/save-for-web/save-for-web.py"
+# no Welcome dialog: GIMP shows it in a new profile, or one of an older
+# version (it takes the focus, so that clicks and keys miss the dialog)
+if ! grep -q config-version "$profile/gimprc" 2>/dev/null; then
+    version=$(gimp-console-3.2 --version | sed 's/.* //')
+    printf '(config-version "%s")\n' "$version" >> "$profile/gimprc"
+fi
+grep -q show-welcome-dialog "$profile/gimprc" 2>/dev/null ||
+  echo '(show-welcome-dialog no)' >> "$profile/gimprc"
 GIMP_RUN_HOME=${GIMP_RUN_HOME:-$tests/output/gimp-home}
 # shellcheck source=SCRIPTDIR/../isolate.sh
 . "$tests/isolate.sh"

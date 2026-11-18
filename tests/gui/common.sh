@@ -37,6 +37,9 @@ cleanup () {
         pkill -P "$instance" 2>/dev/null
         kill "$instance" 2>/dev/null
     done
+    # wait for it to go, so that the next run's check finds none
+    i=0
+    while [ -n "$(ours)" ] && [ $i -lt 20 ]; do sleep 1; i=$((i + 1)); done
 }
 trap cleanup EXIT
 
